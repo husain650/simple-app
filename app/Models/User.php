@@ -4,14 +4,16 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Transcription;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -59,6 +61,14 @@ class User extends Authenticatable
     public function todos(): HasMany
     {
         return $this->hasMany(Todo::class);
+    }
+
+    /**
+     * Get all transcriptions for the user.
+     */
+    public function transcriptions(): HasMany
+    {
+        return $this->hasMany(Transcription::class);
     }
 
     public function getAvatarAttribute(): string
