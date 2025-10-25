@@ -6,6 +6,7 @@ use App\Filament\Admin\Resources\Todos\Pages\CreateTodo;
 use App\Filament\Admin\Resources\Todos\Pages\EditTodo;
 use App\Filament\Admin\Resources\Todos\Pages\ListTodos;
 use App\Models\Todo;
+use App\Models\User;
 use BackedEnum;
 use Filament\Actions;
 use Filament\Forms;
@@ -23,6 +24,8 @@ class TodoResource extends Resource
     protected static ?int $navigationSort = 1;
     protected static ?string $modelLabel = 'Todo';
     protected static ?string $navigationLabel = 'Todos';
+    
+    protected static ?string $recordTitleAttribute = 'title';
 
     public static function form(Schema $schema): Schema
     {
@@ -44,6 +47,23 @@ class TodoResource extends Resource
 
                 Forms\Components\Toggle::make('is_completed')
                     ->required()
+                    ->columnSpanFull(),
+                    
+                Forms\Components\Select::make('priority')
+                    ->options([
+                        'low' => 'Low',
+                        'medium' => 'Medium',
+                        'high' => 'High',
+                    ])
+                    ->default('medium')
+                    ->required()
+                    ->columnSpanFull(),
+                    
+                Forms\Components\Select::make('user_id')
+                    ->label('Assigned To')
+                    ->options(User::pluck('name', 'id'))
+                    ->searchable()
+                    ->preload()
                     ->columnSpanFull(),
             ]);
     }
@@ -69,7 +89,23 @@ class TodoResource extends Resource
                 Tables\Columns\TextColumn::make('due_date')
                     ->date('M d, Y')
                     ->sortable()
-                    ->color(fn (Todo $record) => $record->due_date?->isPast() ? 'danger' : 'success'),
+                    ->color(fn (Todo $record) => $record->due_date?->isPast() && !$record->is_completed ? 'danger' : 'success'),
+                    
+                Tables\Columns\TextColumn::make('priority')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'high' => 'danger',
+                        'medium' => 'warning',
+                        'low' => 'success',
+                    })
+                    ->formatStateUsing(fn (string $state): string => ucfirst($state))
+                    ->sortable(),
+                    
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('Assigned To')
+                    ->searchable()
+                    ->sortable()
+                    ->formatStateUsing(fn ($state) => $state ?? 'Unassigned'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('is_completed')
@@ -78,6 +114,18 @@ class TodoResource extends Resource
                         '0' => 'Incomplete',
                     ])
                     ->label('Status'),
+                    
+                Tables\Filters\SelectFilter::make('priority')
+                    ->options([
+                        'low' => 'Low',
+                        'medium' => 'Medium',
+                        'high' => 'High',
+                    ]),
+                    
+                Tables\Filters\SelectFilter::make('user_id')
+                    ->label('Assigned To')
+                    ->options(User::pluck('name', 'id')->toArray())
+                    ->searchable(),
             ])
             ->actions([
                 Actions\EditAction::make()
@@ -95,6 +143,21 @@ class TodoResource extends Resource
                             ->columnSpanFull(),
                         Forms\Components\Toggle::make('is_completed')
                             ->required()
+                            ->columnSpanFull(),
+                        Forms\Components\Select::make('priority')
+                            ->options([
+                                'low' => 'Low',
+                                'medium' => 'Medium',
+                                'high' => 'High',
+                            ])
+                            ->default('medium')
+                            ->required()
+                            ->columnSpanFull(),
+                        Forms\Components\Select::make('user_id')
+                            ->label('Assigned To')
+                            ->options(User::pluck('name', 'id'))
+                            ->searchable()
+                            ->preload()
                             ->columnSpanFull(),
                     ])
                     ->modalWidth('md')
